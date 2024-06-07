@@ -1,5 +1,4 @@
-<?php namespace CODERS\MVC;
-
+<?php namespace Coders\Mvc;
 /**
  * Description of Model
  *

@@ -19,7 +19,6 @@
  */
 abstract class CodersMVC extends CodersApp {
     /**
-     * 
      * @param string $root
      */
     protected function __construct($root) {
