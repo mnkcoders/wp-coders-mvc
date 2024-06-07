@@ -307,7 +307,7 @@ abstract class CodersResponse {
      
         $root = explode('.', $response );
         
-        $path = sprintf('%s/%s/controllers/%s.php',
+        $path = sprintf('%s/%s/components/controllers/%s.php',
                 WP_PLUGIN_DIR,
                 $root[0],
                 count($root) > 1 ? $root[1] : 'main' );
@@ -624,7 +624,7 @@ abstract class CoderContent{
         
         $root = explode('.', $model);
         
-        $path = sprintf('%s/%s/models/%s.php',
+        $path = sprintf('%s/%s/components/models/%s.php',
                 WP_PLUGIN_DIR,
                 $root[0],
                 count($root) > 1 ? $root[1] : 'main' );
@@ -763,7 +763,7 @@ class CoderView {
         
         $root = explode('.', $view);
         
-        $path = sprintf('%s/%s/views/%s.php',
+        $path = sprintf('%s/%s/components/views/%s.php',
                 WP_PLUGIN_DIR,
                 $root[0],
                 count($root) > 1 ? $root[1] : 'main' );
@@ -806,7 +806,7 @@ abstract class CoderService{
         if( count($root) < 2){
             return NULL;
         }
-        $path = sprintf('%s/%s/services/%s.php',WP_PLUGIN_DIR,$root[0],$root[1]);
+        $path = sprintf('%s/%s/components/services/%s.php',WP_PLUGIN_DIR,$root[0],$root[1]);
         $class = sprintf('%sService', ucfirst($root[1]));
         
         if(file_exists($path)){
@@ -845,7 +845,7 @@ abstract class CoderProvider{
         if( count($root) < 2){
             return NULL;
         }        
-        $path = sprintf('%s/%s/providers/%s.php',WP_PLUGIN_DIR,$root[0],$root[1]);
+        $path = sprintf('%s/%s/components/providers/%s.php',WP_PLUGIN_DIR,$root[0],$root[1]);
         $class = sprintf('%sProvider', ucfirst($root[1]));
         
         if(file_exists($path)){
