@@ -38,6 +38,14 @@ abstract class Response {
         
         return FALSE;
     }
+    /**
+     * @param string $action
+     * @return bool
+     */
+    public function can( $action ){
+        $call = $action . 'Action';
+        return method_exists($this, $call);
+    }
     
     /**
      * @return \CODERS\MVC\Response
@@ -48,7 +56,6 @@ abstract class Response {
     }
     
 }
-
 
 
 
