@@ -1,8 +1,8 @@
 <?php defined('ABSPATH') or die;
 /* * *****************************************************************************
- * Plugin Name: Coders MVC
+ * Plugin Name: Coders App Model View Controller
  * Plugin URI: https://coderstheme.org
- * Description: Model View Controller Framework support for Coders App Endpoints
+ * Description: Model View Controller Extension support for Coders App Endpoints
  * Version: 0.1
  * Author: Coder01
  * Author URI: 
@@ -14,8 +14,10 @@
  * @author Coder01 <coder01@mnkcoder.com>
  * **************************************************************************** */
 
-add_action( 'register_coders_extensions', function(){
-    CodersApp::registerExtension(__DIR__);
+add_action( 'register_coder_extensions', function( array $extensions ){
+    $extensions[] = __DIR__;
+    return $extensions;
+    //CodersApp::register(__DIR__);
 });
 /**
  * Description of request
@@ -245,23 +247,47 @@ abstract class CodersResponse {
      * @param Request $request
      * @return bool
      */
-    public function action( Request $request ){
+    public function action(CodersRequest $request ){
         
         $call = $request->action() . 'Action';
         
-        return method_exists($this, $call) ? $this->$call( $request ) : $this->errorAction( $request );
+        return method_exists($this, $call) ?
+            $this->$call( $request ) :
+                $this->errorAction( $request );
     }
     
     /**
      * 
-     */
-    abstract function defaultAction(Request $request );
-
-    /**
-     * @param Request $request
+     * @param CodersRequest $request
      * @return bool
      */
-    public function errorAction(Request $request ) {
+    public function defaultAction(CodersRequest $request ){
+        
+        
+        return TRUE;
+    }
+    /**
+     * 
+     * @param CodersRequest $request
+     * @return bool
+     */
+    public function testAction( CodersRequest $request ) {
+        
+        $content = CoderContent::create('test',array('a'=>1,'b'=>2,'c'=>3));
+        
+        $view = CoderView::create();
+        
+        $view->setContent($content)->setView()->show();
+        
+        return TRUE;
+    }
+
+    /**
+     * @param CodersRequest $request
+     * @return bool
+     */
+    public function errorAction(CodersRequest $request ) {
+        
         
         return FALSE;
     }
@@ -275,13 +301,35 @@ abstract class CodersResponse {
     }
     
     /**
-     * @return \CODERS\MVC\CodersResponse
+     * @return CodersResponse
      */
-    public static final function create(){
+    public static final function create( $response ){
+     
+        $root = explode('.', $response );
         
-        return null;
-    }
-    
+        $path = sprintf('%s/%s/controllers/%s.php',
+                WP_PLUGIN_DIR,
+                $root[0],
+                count($root) > 1 ? $root[1] : 'main' );
+        
+        $class = sprintf('%sResponse', ucfirst($root[1]));
+        
+        if(file_exists($path)){
+            require_once $path;
+        }
+        else{
+            //error
+        }
+        
+        if(class_exists($class) && is_subclass_of($class, CodersResponse::class, true)){
+            return new $class();
+        }
+        else{
+            //error
+        }
+        
+        return NULL;
+    }    
 }
 /**
  * Description of Model
@@ -575,8 +623,13 @@ abstract class CoderContent{
     public static final function create( $model , array $data = array() ){
         
         $root = explode('.', $model);
-        $path = sprintf('%s/%s/models/%s.php',WP_PLUGIN_DIR,$root[0],$root[1]);
-        $class = sprintf('%sModel', ucfirst($root[1]));
+        
+        $path = sprintf('%s/%s/models/%s.php',
+                WP_PLUGIN_DIR,
+                $root[0],
+                count($root) > 1 ? $root[1] : 'main' );
+        
+        $class = sprintf('%sContent', ucfirst($root[1]));
         
         if(file_exists($path)){
             require_once $path;
@@ -586,7 +639,7 @@ abstract class CoderContent{
         }
         
         if(class_exists($class) && is_subclass_of($class, CoderContent::class, true)){
-            return new $class();
+            return new $class( $data );
         }
         else{
             //error
@@ -600,19 +653,56 @@ abstract class CoderContent{
  *
  * @author coder1
  */
-abstract class CoderView {
+class CoderView {
     
     const INPUT_FILE = 'file';
     const INPUT_HIDDEN = 'hidden';
     
-    
     /**
-     * 
+     * @var CoderContent
      */
-    private function __construct( ) {
+    private $_content = null;
+    /**
+     * @var string
+     */
+    private $_layout = 'default';
+
+    /**
+     * @param CoderContent $content
+     */
+    private function __construct(CoderContent $content = null ) {
         
+        if( !is_null($content)){
+            $this->setContent($content);
+        }
         
     }
+    /**
+     * @param CoderContent $content
+     * @return CoderView
+     */
+    public function setContent( CoderContent $content ) {
+        if(is_subclass_of($content, CoderContent::class,true)){
+            $this->_content = $content;
+        }
+        return $this;
+    }
+    /**
+     * @param string $layout
+     * @return CoderView
+     */
+    public function setView( $layout = '') {
+        $this->_layout = strlen($layout) ? $layout : 'default';
+        return $this;
+    }
+    /**
+     * @return CoderView
+     */
+    public function show( ){
+       
+        return $this;
+    }
+    
     /**
      * <html> content
      * @param string $tag
@@ -660,10 +750,41 @@ abstract class CoderView {
         ), $content);
     }
 
-
-    public static final function create(){
+    /**
+     * @param string $view
+     * @param CoderContent $content
+     * @return CoderView
+     */
+    public static final function create( $view = '', CoderContent $content = null ){
         
-        return new CoderView();
+        if(strlen($view) < 1 ){
+            return new CoderView( $content );
+        }
+        
+        $root = explode('.', $view);
+        
+        $path = sprintf('%s/%s/views/%s.php',
+                WP_PLUGIN_DIR,
+                $root[0],
+                count($root) > 1 ? $root[1] : 'main' );
+        
+        $class = sprintf('%sView', ucfirst($root[1]));
+        
+        if(file_exists($path)){
+            require_once $path;
+        }
+        else{
+            //error
+        }
+        
+        if(class_exists($class) && is_subclass_of($class, CoderView::class, true)){
+            return new $class();
+        }
+        else{
+            //error
+        }
+        
+        return NULL;
     }    
 }
 /**
@@ -675,22 +796,76 @@ abstract class CoderService{
         
     }
     
-    
+    /**
+     * @param string $service
+     * @return CoderService
+     */
     public static final function create( $service ){
+
+        $root = explode('.', $service);
+        if( count($root) < 2){
+            return NULL;
+        }
+        $path = sprintf('%s/%s/services/%s.php',WP_PLUGIN_DIR,$root[0],$root[1]);
+        $class = sprintf('%sService', ucfirst($root[1]));
         
-        return null;
+        if(file_exists($path)){
+            require_once $path;
+        }
+        else{
+            //error
+        }
+        
+        if(class_exists($class) && is_subclass_of($class, CoderService::class, true)){
+            return new $class();
+        }
+        else{
+            //error
+        }
+        
+        return NULL;
     }
 }
 /**
  * 
  */
 abstract class CoderProvider{
+    
     protected function __construct() {
         
     }
     
+    /**
+     * @param string $provider
+     * @return CoderProvider
+     */
     public static final function create( $provider ){
+
+        $root = explode('.', $provider);
+        if( count($root) < 2){
+            return NULL;
+        }        
+        $path = sprintf('%s/%s/providers/%s.php',WP_PLUGIN_DIR,$root[0],$root[1]);
+        $class = sprintf('%sProvider', ucfirst($root[1]));
         
-        return null;
+        if(file_exists($path)){
+            require_once $path;
+        }
+        else{
+            //error
+        }
+        
+        if(class_exists($class) && is_subclass_of($class, CoderProvider::class, true)){
+            return new $class();
+        }
+        else{
+            //error
+        }
+        
+        return NULL;
     }
 }
+
+
+
+
