@@ -14,8 +14,10 @@
  * @author Coder01 <coder01@mnkcoder.com>
  * **************************************************************************** */
 
+define('CODERS_MVC_ROOT', preg_replace('/\\\\/', '/', __DIR__ ) );
+
 add_action( 'register_coder_extensions', function( array $extensions ){
-    $extensions[] = __DIR__;
+    $extensions[] = CODERS_MVC_ROOT;
     return $extensions;
     //CodersApp::register(__DIR__);
 });
@@ -830,22 +832,113 @@ abstract class CoderService{
  * 
  */
 abstract class CoderProvider{
+    /**
+     * @var array
+     */
+    private $_attributes = array(
+        //attributes
+    );
     
-    protected function __construct() {
-        
+    /**
+     * @param array $setup
+     */
+    protected function __construct( array $setup = array() ) {
+        $this->initialize($setup);
     }
     
+    /**
+     * @param string $name
+     * @return string
+     */
+    public final function __get($name) {
+        return $this->__has($name) ? $this->attributes[$name] : '';
+    }
+    
+    /**
+     * @param string $name
+     * @param array $arguments
+     * @return mixed
+     */
+    public function __call( $name, $arguments ) {
+        switch(TRUE){
+            case preg_match('/^list_/', $name):
+                return $this->__list($name,$arguments);
+            case preg_match('/^is_/', $name):
+                return $this->__is($name);
+            case preg_match('/^has_/', $name):
+                return $this->__has($name);
+            default:
+                return $this->$name;
+        }
+    }
+    
+    /**
+     * @param string $name
+     * @param array $args
+     * @return array
+     */
+    protected final function __list( $name , array $args = array() ){
+        $call = 'list' . ucfirst($name);
+        return method_exists($this, $call) ? $this->$call( $args ) : array();
+    }
+
+    /**
+     * @param string $name
+     * @param array $args
+     * @return bool
+     */
+    protected final function __is( $name ){
+        $call = 'is' . ucfirst($name);
+        return method_exists($this, $call) ? $this->$call( ) : false;
+    }
+
+    /**
+     * @param string $name
+     * @return bool
+     */
+    protected final function __has( $name ){
+        return array_key_exists( $name , $this->_attributes );
+    }
+
+    /**
+     * @param array $attributes
+     * @return CoderProvider
+     */
+    private final function initialize( array $attributes ){
+        foreach( $attributes as $var => $val ){
+            if(array_key_exists($var, $this->_attributes)){
+                $this->_attributes[$var] =  $val;
+            }
+        }
+        return $this;
+    }
+
+    /**
+     * @param string $att
+     * @param mixed $default
+     * @return CoderProvider
+     */
+    protected final function register( $att , $default = '' ){
+        $this->_attributes[$att] = $default;
+        return $this;
+    }
+
     /**
      * @param string $provider
      * @return CoderProvider
      */
-    public static final function create( $provider ){
+    public static final function create( $provider , array $setup = array( ) ){
 
         $root = explode('.', $provider);
+        
         if( count($root) < 2){
-            return NULL;
-        }        
+            $root[] = $root[0];
+            $base = explode('/',CODERS_MVC_ROOT);
+            $root[0] = $base[count($base)-1];
+        }
+        
         $path = sprintf('%s/%s/components/providers/%s.php',WP_PLUGIN_DIR,$root[0],$root[1]);
+        
         $class = sprintf('%sProvider', ucfirst($root[1]));
         
         if(file_exists($path)){
@@ -856,7 +949,7 @@ abstract class CoderProvider{
         }
         
         if(class_exists($class) && is_subclass_of($class, CoderProvider::class, true)){
-            return new $class();
+            return new $class( $setup );
         }
         else{
             //error
