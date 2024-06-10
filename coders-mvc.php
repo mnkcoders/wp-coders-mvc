@@ -847,6 +847,25 @@ abstract class CoderProvider{
     }
     
     /**
+     * @return string
+     */
+    public function __toString() {
+        return get_class($this);
+    }
+    
+    /**
+     * @return html
+     */
+    public final function __html(){
+        $name = strval($this);
+        $atts = array();
+        foreach($this->_attributes as $var => $val ){
+            $atts[] = sprintf('%s="%s"',$var,$val);
+        }
+        return sprintf('<%s %s/>',$name, implode(' ', $atts));
+    }
+
+    /**
      * @param string $name
      * @return string
      */
