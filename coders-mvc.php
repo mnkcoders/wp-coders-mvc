@@ -665,9 +665,11 @@ class CoderView {
      */
     private $_content = null;
     /**
-     * @var string
+     * @var array
      */
-    private $_layout = 'default';
+    private $_settings = array(
+        'layout' => 'default',
+    );
 
     /**
      * @param CoderContent $content
@@ -678,6 +680,106 @@ class CoderView {
             $this->setContent($content);
         }
         
+    }
+    /**
+     * @param string $name
+     * @return string
+     */
+    public function __get($name) {
+        
+        switch(TRUE){
+            case preg_match('/^url_/', $name):
+                return $this->__url($name);
+            case preg_match('/^list_/', $name):
+                return $this->__list($name);
+            case preg_match('/^is_/', $name):
+                return $this->__is($name);
+            case preg_match('/^has_/', $name):
+                return $this->__has($name);
+            default:
+                return $this->$name;
+        }
+        
+        return sprintf('<!-- invalid magic attribute [%s] -->',$name);
+    }
+    /**
+     * @param string $name
+     * @param array $args
+     * @return string
+     */
+    public function __call($name, $args ) {
+        
+        switch(TRUE){
+            case preg_match('/^url_/', $name):
+                return $this->__url($name);
+            case preg_match('/^list_/', $name):
+                return $this->__list($name,$arguments);
+            case preg_match('/^is_/', $name):
+                return $this->__is($name);
+            case preg_match('/^has_/', $name):
+                return $this->__has($name);
+            default:
+                return $this->$name;
+        }
+        
+        return sprintf('<!-- invalid magic call [%s] -->',$name);
+    }
+    /**
+     * @param string $name
+     * @param array $args
+     * @return bool
+     */
+    protected function __is( $name , array $args = array()){
+
+        $call = 'is' . ucfirst($name);
+                
+        return method_exists($this, $call) ?
+            $this->$call(  $args ) :
+                bool;
+    }
+    /**
+     * @param string $name
+     * @param array $args
+     * @return bool
+     */
+    protected function __has( $name , array $args = array()){
+
+        $call = 'has' . ucfirst($name);
+                
+        return method_exists($this, $call) ?
+            $this->$call(  $args ) :
+                bool;
+    }
+    /**
+     * @param string $name
+     * @param array $args
+     * @return array
+     */
+    protected function __list( $name , array $args = array()){
+
+        $call = sprintf('list%s', ucfirst($name));
+        
+        return method_exists($this, $call) ?
+            $this->$call( $args ) :
+                array();
+    }
+    /**
+     * @param string $name
+     * @param array $args
+     * @return string|URL
+     */
+    protected function __url( $name , array $args = array()){
+
+        $call = sprintf('get%sUrl', ucfirst($name));
+        
+        return method_exists($this, $call) ? $this->$call(  $args ) : '';
+    }
+    
+    /**
+     * @return bool
+     */
+    public function hasContent( ) {
+        return !is_null( $this->_content );
     }
     /**
      * @param CoderContent $content
@@ -694,7 +796,7 @@ class CoderView {
      * @return CoderView
      */
     public function setView( $layout = '') {
-        $this->_layout = strlen($layout) ? $layout : 'default';
+        $this->_settings['layout'] = strlen($layout) ? $layout : 'default';
         return $this;
     }
     /**
