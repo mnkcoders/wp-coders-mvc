@@ -1,6 +1,6 @@
-<?php defined('ABSPATH') or die;
+<?php namespace CODERS\APP\MVC;
 /* * *****************************************************************************
- * Plugin Name: Coders App Model View Controller
+ * Plugin Name: Coders App MVC Extension
  * Plugin URI: https://coderstheme.org
  * Description: Model View Controller Extension support for Coders App Endpoints
  * Version: 0.1
@@ -13,13 +13,13 @@
  * 
  * @author Coder01 <coder01@mnkcoder.com>
  * **************************************************************************** */
+defined('ABSPATH') or die;
 
 define('CODERS_MVC_ROOT', preg_replace('/\\\\/', '/', __DIR__ ) );
 
 add_action( 'register_coder_extensions', function( array $extensions ){
     $extensions[] = CODERS_MVC_ROOT;
     return $extensions;
-    //CodersApp::register(__DIR__);
 });
 /**
  * Description of request
