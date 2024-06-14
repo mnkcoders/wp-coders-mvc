@@ -892,19 +892,88 @@ class CoderView {
     }    
 }
 /**
- * 
+ * \CODERS\MVC\Service
  */
-abstract class CoderService{
+abstract class Service{
     
-    protected function __construct() {
+    //// SINGLETON MANAGER
+    /**
+     * @var \CODERS\MVC\Service[]
+     */
+    private static $_services = [/*register services here*/];
+    
+    //// INSTANCE ATTRIBUTES
+    private $_settings = [/*register settings here*/];
+    
+    /**
+     * @param array $settings
+     */
+    protected function __construct( array $settings = []) {
         
+        $this->import($settings); 
+    }
+    /**
+     * @param string $name
+     * @return mixed
+     */
+    public function __get($name) {
+        return $this->has($name) ? $this->_settings[$name] : FALSE;
+    }
+    /**
+     * @param string $setting
+     * @return bool
+     */
+    public function has($setting) {
+        return array_key_exists($setting, $this->_settings);
+    }
+    /**
+     * @param array $settings
+     * @return CODERS\MVC\Service
+     */
+    protected function import( array $settings ) {
+        foreach ($settings as $set => $val ){
+            if($this->has($set)){
+                $this->_settings[$set] = $val;
+            }
+        }
+                
+        return $this;
+    }
+    /**
+     * @param string $set
+     * @param mixed $default
+     * @return CODERS\MVC\Service
+     */
+    protected function register($set , $default = FALSE ) {
+        if(!$this->has($set)){
+            $this->_settings[ $set ] = $default;
+        }
+        return $this;
+    }
+    /**
+     * @return bool
+     */
+    public function run( ) {
+        
+        return TRUE;
+    }
+    
+    /**
+     * @param string $filter
+     * @return \CODERS\MVC\Service[]
+     */
+    public static final function services( $filter = '' ){
+        
+        return strlen($filter) ?
+            array_filter(self::$_services, function( $svc ){ return $svc->type === $filter; } ) :
+                self::$_services;
     }
     
     /**
      * @param string $service
-     * @return CoderService
+     * @return Service
      */
-    public static final function create( $service ){
+    public static final function create( $service , array $settings = [] ){
 
         $root = explode('.', $service);
         if( count($root) < 2){
@@ -912,6 +981,10 @@ abstract class CoderService{
         }
         $path = sprintf('%s/%s/components/services/%s.php',WP_PLUGIN_DIR,$root[0],$root[1]);
         $class = sprintf('%sService', ucfirst($root[1]));
+        $settings['name'] = $root[1];
+        if(!array_key_exists('type', $settings)){
+            $settings['type'] = 'general';
+        }
         
         if(file_exists($path)){
             require_once $path;
@@ -920,8 +993,10 @@ abstract class CoderService{
             //error
         }
         
-        if(class_exists($class) && is_subclass_of($class, CoderService::class, true)){
-            return new $class();
+        if(class_exists($class) && is_subclass_of($class, Service::class, true)){
+            $svc = new $class( $settings );
+            self::$_services[ $settings['name'] ] = $svc;
+            return $svc;
         }
         else{
             //error
